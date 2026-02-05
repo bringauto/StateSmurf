@@ -121,6 +121,17 @@ def run_scenarios():
     return tests_passed
 
 
+def extract_executable_path(command_string: str) -> str:
+    """Extract the actual executable path from a command string that may contain environment variables."""
+    parts = command_string.split()
+    for part in parts:
+        # Skip environment variable assignments (e.g., VAR=value)
+        if '=' in part:
+            continue
+        # First non-env-var part is the executable
+        return part
+    return command_string
+
 def check_executable(path_to_executable) -> bool:
     if not os.path.isfile(path_to_executable):
         print(f"\033[31mERROR: {path_to_executable} binary doesn't exist\033[0m")
@@ -286,14 +297,18 @@ if __name__ == "__main__":
         exit(1)
 
     if args.executable != "":
-        executable_path = os.path.abspath(args.executable)
+        executable_path = args.executable
     elif "default_executable" in scenario_json:
-        executable_path = os.path.abspath(scenario_json["default_executable"])
+        executable_path = scenario_json["default_executable"]
     else:
         print("\033[31mERROR: No executable path provided\033[0m")
         exit(1)
 
-    if not check_executable(executable_path):
+    # Extract the actual executable from the command (may contain env vars)
+    actual_executable = extract_executable_path(executable_path)
+    actual_executable_abs = os.path.abspath(actual_executable)
+
+    if not check_executable(actual_executable_abs):
         exit(1)
 
     workDir = os.path.abspath(os.path.dirname(args.scenario))
